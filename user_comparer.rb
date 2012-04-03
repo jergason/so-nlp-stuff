@@ -1,6 +1,7 @@
 require './downloader'
-require 'pry'
 
+# Simple measure of difference between users
+# by comparing presence and absence of tags.
 def simple_count_compare(tags_a, tags_b)
   all_words = tags_a.keys.concat(tags_b.keys).uniq
   common = 0
@@ -13,32 +14,29 @@ def simple_count_compare(tags_a, tags_b)
     end
   end
 
-  if different == 0.0
-    0.0
-  else
-    common.to_f / different.to_f
-  end
+  common.to_f / (common.to_f + different.to_f)
 end
 
 # Given two Hashses of :key => probabilty,
 # calculate the KL-divergence of the two
 def kl_from_probability_distributions(p_a, p_b)
-  #binding.pry
   p_a.inject(0.0) do |sum, values|
     if p_b[values[0]] == 0 || values[1] == 0
       sum
     else
-      sum + Math.log(values[1].to_f / p_b[values[0]])
+      sum + (values[1] * Math.log(values[1].to_f / p_b[values[0]]))
     end
   end
 end
 
 # Compare to distributions of tags using the kl-divergence (http://en.wikipedia.org/wiki/Kullback%E2%80%93Leibler_divergence)
 # metric. Since it is not symmetrical, we calculate it both ways.
+#
+# This is a more complex comparison because it takes in to account
+# the number of tags.
 def kl_divergence(tags_a, tags_b)
 
   all_words = tags_a.keys.concat(tags_b.keys).uniq
-  binding.pry
   num_tags_in_a = tags_a.inject(0) { |count, ar| count + ar[1].to_i }
   num_tags_in_b = tags_b.inject(0) { |count, ar| count + ar[1].to_i }
 

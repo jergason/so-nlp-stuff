@@ -37,4 +37,10 @@ class Downloader
 
     u.answers
   end
+
+  def get_tags(user_id)
+    u = Lunker::User.new user_id.to_i
+
+    u.tags
+  end
 end

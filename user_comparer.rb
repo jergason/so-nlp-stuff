@@ -1,26 +1,35 @@
+require './downloader'
+require 'pry'
+
 def simple_count_compare(tags_a, tags_b)
-  to_loop = tags_a.count > tags_b.count ? tags_a : tags_b
-  other = tags_a.count > tags_b.count ? tags_b : tags_a
+  all_words = tags_a.keys.concat(tags_b.keys).uniq
   common = 0
   different = 0
-  to_loop.each do |key, value|
-    if value.to_i && other[key].to_i
+  all_words.each do |word|
+    if tags_a[word] == tags_b[word]
       common += 1
     else
       different += 1
     end
   end
 
-  common.to_f / different.to_f
+  if different == 0.0
+    0.0
+  else
+    common.to_f / different.to_f
+  end
 end
 
 # Given two Hashses of :key => probabilty,
 # calculate the KL-divergence of the two
 def kl_from_probability_distributions(p_a, p_b)
+  #binding.pry
   p_a.inject(0.0) do |sum, values|
-    sum if p_b[values[0]] == 0 || values[1] == 0
-
-    sum + Math.log(values[1].to_f / p_b[values[0]])
+    if p_b[values[0]] == 0 || values[1] == 0
+      sum
+    else
+      sum + Math.log(values[1].to_f / p_b[values[0]])
+    end
   end
 end
 
@@ -29,6 +38,7 @@ end
 def kl_divergence(tags_a, tags_b)
 
   all_words = tags_a.keys.concat(tags_b.keys).uniq
+  binding.pry
   num_tags_in_a = tags_a.inject(0) { |count, ar| count + ar[1].to_i }
   num_tags_in_b = tags_b.inject(0) { |count, ar| count + ar[1].to_i }
 
@@ -53,18 +63,30 @@ def kl_divergence(tags_a, tags_b)
   kl_a = kl_from_probability_distributions(p_a, p_b)
   kl_b = kl_from_probability_distributions(p_b, p_a)
 
-  kl_a, kl_b
+  [kl_a, kl_b]
 end
 
-def tags_for_user(user_id)
-  # return an array of tags for that user.
-  # How to compare two users?
+def tags_for_user(user_id, downloader)
+  tags = downloader.get_tags(user_id)
+  return_tags = {}
+  tags.each do |tag|
+    return_tags[tag['name']] = tag['count']
+  end
+
+  return_tags
 end
 
-def compare_users(user_id_a, user_id_b)
-  tags_a = tags_for_user(user_id_a)
-  tags_b = tags_for_user(user_id_b)
+def compare_users(user_id_a, user_id_b, downloader)
+  tags_a = tags_for_user(user_id_a, downloader)
+  tags_b = tags_for_user(user_id_b, downloader)
 
   count_compare = simple_count_compare(tags_a, tags_b)
   kl_divergence = kl_divergence(tags_a, tags_b)
+
+  [count_compare, kl_divergence]
 end
+
+
+downloader = Downloader.new
+
+puts compare_users(ARGV[0], ARGV[1], downloader)

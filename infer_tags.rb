@@ -13,16 +13,35 @@ module TagInference
       @topic_tags = nil
     end
 
-    # Takes a path to a document, and returns the top inferred tags
-    # for that document.
+    # Takes a path to a document or directory of documents, and returns the top inferred tags
+    # for that document or all for that directory
     #
     # returns an array of inferred tags, roughly in order of relevance
     def infer_tags_for_document(document)
       mallet_output = infer_topics(document, @mallet_path, @inferencer_path)
-      topic_distribution = mallet_output.split("\n")[1].strip.split(" ")
-      #binding.pry
-      # cache topic tags so don't need to reload
+
+      if File.directory? document
+        # first line is just the key, so ignore it
+        mallet_output.shift
+        topic_distributions = mallet_output.split("\n")
+        inferred_tags_per_document = {}
+        topic_distributions.each do |topic|
+          doc_name = topic.split(" ")[1]
+          inferred_tags_per_document[doc_name] = tags_for_topic_distro topic
+        end
+        inferred_tags_per_document
+      else
+        binding.pry
+        topic_distribution = mallet_output.split("\n")[1].strip.split(" ")
+        inferred_tags = tags_for_topic_distro topic_distribution
+      end
+    end
+
+    private
+    def tags_for_topic_distro(topic_distribution)
+      # cache tags so we can reuse if needed
       @topic_tags = load_topic_tags(@topic_tags_path) if @topic_tags.nil?
+      topic_distribution << 'tmp' unless topic_distribution.length.odd?
       topic_proportions = ::TagInference::TopicTagAnalyzer.get_topic_proportions(topic_distribution)
       top_topics = get_top_topics(topic_proportions)
       inferred_tags = get_tags_for_topics(top_topics, @topic_tags)
@@ -30,28 +49,57 @@ module TagInference
       inferred_tags
     end
 
-
-    private
     def infer_topics(document, mallet_path, inferencer_path)
       if cached? document
         return get_from_cache document
       end
 
-      `rm -rf tmp_infer_topics`
-      `mkdir -p tmp_infer_topics`
+      if File.directory? document
+        return infer_topics_on_dir document, mallet_path, inference_path
+      end
+
+      tmp_dir = 'tmp_infer_topics'
+      tmp_input_file = "#{tmp_infer_topics}/tmp.txt"
+      tmp_mallet_input = "#{tmp_infer_topics}/tmp.mallet"
+      tmp_doc_topics = "#{tmp_infer_topics}/tmp_output_doc_topics.txt"
+
+      `rm -rf #{tmp_dir}`
+      `mkdir -p #{tmp_dir}`
       doc = nil
       open(document, 'r') { |f| doc = f.read }
-      open('tmp_infer_topics/tmp.txt', 'wb') {|f| f.write(doc) }
+      open(tmp_input_file, 'wb') {|f| f.write(doc) }
 
-      `#{mallet_path} import-dir --input tmp_infer_topics --output tmp_infer_topics/tmp.mallet --keep-sequence --remove-stopwords`
-      `#{mallet_path} infer-topics --inferencer #{inferencer_path} --input tmp_infer_topics/tmp.mallet --output-doc-topics tmp_infer_topics/tmp_output_doc_topics.txt`
+      run_mallet_import(mallet_path, tmp_dir, tmp_mallet_input)
+      run_mallet_inference(mallet_path, inferencer_path, tmp_mallet_input, tmp_doc_topics)
       topic_distro = nil
-      open('tmp_infer_topics/tmp_output_doc_topics.txt', 'r') do |f|
+      open(tmp_doc_topics, 'r') do |f|
         topic_distro = f.read
       end
       write_to_cache topic_distro, document
 
       topic_distro
+    end
+
+    def infer_topics_on_dir(document, mallet_path, inference_path)
+      tmp_mallet_input = "tmp_mallet_input.mallet"
+      tmp_doc_topics = "tmp_doc_topics.txt"
+      run_mallet mallet_path, document, tmp_mallet_input
+      run_mallet_inference mallet_path, inference_path, tmp_mallet_input, tmp_doc_topics
+      topic_distro = nil
+      open(tmp_doc_topics, 'r') do |f|
+        topic_distro = f.read
+      end
+      write_to_cache topic_distro, document
+
+      topic_distro
+    end
+
+    def run_mallet_import(mallet_path, input, output)
+      `#{mallet_path} import-dir --input #{input} --output #{output} --keep-sequence --remove-stopwords`
+    end
+
+    def run_mallet_inference(mallet_path, inferencer, input, output)
+      `#{mallet_path} infer-topics --inferencer #{inferencer} --input #{input} --output-doc-topics #{output}`
     end
 
     def cached?(document_path)

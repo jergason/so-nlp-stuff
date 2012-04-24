@@ -1,9 +1,9 @@
 require 'lunker'
-require 'pry'
 
 class Downloader
   attr_accessor :low_cutoff
   def initialize
+    Lunker.configure
     Lunker.configure do |conf|
       # include bodies on questions, answers, comments.
       conf.filter = "!0YMBtdk9)8cW.V-o1xluM)Sy5"
@@ -17,9 +17,8 @@ class Downloader
     Lunker.requests_remaining < @low_cutoff
   end
 
-
-  def get_users(args)
-    res = @user_downloader.users(*args)
+  def get_users(limit, params)
+    res = @user_downloader.users(limit, params)
   end
 
   def get_questions(user)

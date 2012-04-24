@@ -1,6 +1,4 @@
 require './downloader'
-require 'pp'
-require 'pry'
 
 def get_all_questions_and_answers_for_user(user, downloader, data_path)
   user_path = File.join(data_path, user['user_id'].to_s)
@@ -34,15 +32,15 @@ end
 
 d = Downloader.new
 
-out_path = "./middle_users"
+out_path = "./bottom_users"
 
-users = d.get_users([1000, { :sort => 'reputation', :order => 'desc', :min => '2000', :max => '10000' }])
+users = d.get_users(100000, { :sort => 'reputation', :order => 'asc', :min => '10', :max => '10000' })
 
 users.each_with_index do |user, i|
   if d.requests_used_up?
     puts "requests used up for the day!"
     puts "finished on #{i}"
-    File.open("./data/users_to_finish.json", "w") do |f|
+    File.open(File.join(out_path, "users_to_finish.json"), "w") do |f|
       f.write(users[i..-1].to_json)
     end
     exit

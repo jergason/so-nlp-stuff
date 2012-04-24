@@ -2,43 +2,9 @@
 
 import codecs
 import os
-import re
 import json
 import sys
 from bs4 import BeautifulSoup
-
-c = {}
-c['num_topics'] = 100
-c['dataset_name'] = 'stack_overflow'
-c['dataset_readable_name'] = 'Stack Overflow'
-c['suppress_default_document_metadata_task'] = True
-
-def task_extract_data():
-    def utd(_tasks, _vals):
-        return os.path.exists(os.path.join(c['raw_data_dir'], 'data')) and os.path.exists(os.path.join(c['raw_data_dir'], 'metadata', 'documents.json'))
-    data_dir = os.path.join(c['raw_data_dir'], "data")
-    dest_dir = c['files_dir']
-    task = dict()
-    task['targets'] = [dest_dir]
-    task['actions'] = [(_extract, [data_dir, dest_dir])]
-    task['clean'] = ['rm -rf '+dest_dir]
-    return task
-
-
-
-def task_mallet_imported_data():
-    task = dict()
-    task['targets'] = [c['mallet_imported_data']]
-
-    cmd = '%s import-dir --input %s --output %s --keep-sequence --set-source-by-name --source-name-prefix "file:%s/%s/" ' \
-        % (c['mallet'], c['files_dir'], c['mallet_imported_data'], os.getcwd(), c['files_dir'])
-
-    cmd += ' --extra-stopwords %s' % os.path.join(c['raw_data_dir'], 'stopwords.txt')
-
-    task['actions'] = [cmd]
-    task['file_dep'] = [c['mallet_input']]
-    task['clean'] = ["rm -f " + c['mallet_imported_data']]
-    return task
 
 def _extract(data_dir, result_dir):
     print('getting stack overflow data! woot woot')
@@ -49,14 +15,26 @@ def _extract(data_dir, result_dir):
     for user in user_dirs:
         if user == '.':
             continue
-        counter, question_metadata = _clean_questions_and_answers(os.path.join(data_dir, user), 'questions', result_dir, counter)
-        counter, answer_metadata = _clean_questions_and_answers(os.path.join(data_dir, user), 'answers', result_dir, counter)
+        counter, question_metadata = _clean_questions_and_answers(os.path.join(data_dir, user), 'questions', result_dir, counter, user)
+        counter, answer_metadata = _clean_questions_and_answers(os.path.join(data_dir, user), 'answers', result_dir, counter, user)
         metadata.update(question_metadata)
         metadata.update(answer_metadata)
         progress_counter += 1
         print('Done with extracting stuff for user %d of %d' % (progress_counter, len(user_dirs)))
     sys.stderr.write("DONE WITH SOME STUFFFFFFFFF!")
-    _write_out_metadata(metadata, result_dir)
+    #_write_out_metadata(metadata, result_dir)
+
+def _extract_combined(data_dir, result_dir):
+    print('getting stack overflow data! woot woot')
+    user_dirs = os.walk(data_dir).next()[1]
+    progress_counter = 0
+    for user in user_dirs:
+        if user == '.':
+            continue
+        _clean_qa_single_file(os.path.join(data_dir, user), result_dir, user)
+        progress_counter += 1
+        print('Done with extracting stuff for user %d of %d' % (progress_counter, len(user_dirs)))
+    sys.stderr.write("DONE WITH SOME STUFFFFFFFFF!")
 
 def _get_metadata_for_document(document):
     """Given a dictionary, will pull the relevant metadata out of it and return it as a dictionary."""
@@ -90,8 +68,7 @@ def _write_out_metadata(metadata, output_dir):
     w.write(json.dumps(formatted_data))
     w.close()
 
-def _clean_questions_and_answers(base_dir, q_or_a, output_dir, counter):
-    num_files_cleaned = 1
+def _clean_questions_and_answers(base_dir, q_or_a, output_dir, counter, user_id):
     metadata = {}
     with open(os.path.join(base_dir, 'raw', '%s.json' % q_or_a)) as f:
         raw = f.read()
@@ -99,12 +76,32 @@ def _clean_questions_and_answers(base_dir, q_or_a, output_dir, counter):
     for item in dat:
         metadata['%s.txt' % counter] = _get_metadata_for_document(item)
         soup = BeautifulSoup(item['body'])
-        w = create_dirs_and_open(os.path.join(output_dir, '%s.txt' % str(counter)))
+        if q_or_a == 'questions':
+            item_id = item['question_id']
+        else:
+            item_id = item['answer_id']
+        w = create_dirs_and_open(os.path.join(output_dir, '%s-%s-%s.txt' % (user_id, q_or_a, item_id)))
         w.write(soup.get_text())
         w.close()
         counter += 1
 
     return counter, metadata
+
+def _clean_qa_single_file(base_dir, output_dir, user_id):
+    with open(os.path.join(base_dir, 'raw', 'questions.json')) as f:
+        raw_questions = f.read()
+    questions = json.loads(raw_questions)
+
+    with open(os.path.join(base_dir, 'raw', 'answers.json')) as f:
+        raw_answers = f.read()
+    answers = json.loads(raw_answers)
+
+    results = ''.join([BeautifulSoup(item['body']).get_text() for item in questions])
+    results += ''.join([BeautifulSoup(item['body']).get_text() for item in answers])
+
+    w = create_dirs_and_open(os.path.join(output_dir, '%s.txt' % str(user_id)))
+    w.write(results)
+    w.close()
 
 def create_dirs_and_open(filename):
     """This assumes that you want to open the file for writing.  It doesn't
@@ -131,5 +128,7 @@ def _try_makedirs(path):
 
 
 if (__name__ == "__main__"):
-    _extract(sys.argv[1], sys.argv[2])
-
+    if len(sys.argv) < 3:
+        print("Usage: python stack_overflow.py <input-dir> <output-dir>")
+    else:
+        _extract(sys.argv[1], sys.argv[2])

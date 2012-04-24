@@ -22,16 +22,15 @@ module TagInference
 
       if File.directory? document
         # first line is just the key, so ignore it
-        mallet_output.shift
         topic_distributions = mallet_output.split("\n")
+        topic_distributions.shift
         inferred_tags_per_document = {}
         topic_distributions.each do |topic|
-          doc_name = topic.split(" ")[1]
-          inferred_tags_per_document[doc_name] = tags_for_topic_distro topic
+          doc_name = topic.strip.split(" ")[1]
+          inferred_tags_per_document[doc_name] = tags_for_topic_distro topic.strip.split(" ")
         end
         inferred_tags_per_document
       else
-        binding.pry
         topic_distribution = mallet_output.split("\n")[1].strip.split(" ")
         inferred_tags = tags_for_topic_distro topic_distribution
       end
@@ -55,13 +54,13 @@ module TagInference
       end
 
       if File.directory? document
-        return infer_topics_on_dir document, mallet_path, inference_path
+        return infer_topics_on_dir document, mallet_path, inferencer_path
       end
 
       tmp_dir = 'tmp_infer_topics'
-      tmp_input_file = "#{tmp_infer_topics}/tmp.txt"
-      tmp_mallet_input = "#{tmp_infer_topics}/tmp.mallet"
-      tmp_doc_topics = "#{tmp_infer_topics}/tmp_output_doc_topics.txt"
+      tmp_input_file = "#{tmp_dir}/tmp.txt"
+      tmp_mallet_input = "#{tmp_dir}/tmp.mallet"
+      tmp_doc_topics = "#{tmp_dir}/tmp_output_doc_topics.txt"
 
       `rm -rf #{tmp_dir}`
       `mkdir -p #{tmp_dir}`
@@ -83,7 +82,7 @@ module TagInference
     def infer_topics_on_dir(document, mallet_path, inference_path)
       tmp_mallet_input = "tmp_mallet_input.mallet"
       tmp_doc_topics = "tmp_doc_topics.txt"
-      run_mallet mallet_path, document, tmp_mallet_input
+      run_mallet_import mallet_path, document, tmp_mallet_input
       run_mallet_inference mallet_path, inference_path, tmp_mallet_input, tmp_doc_topics
       topic_distro = nil
       open(tmp_doc_topics, 'r') do |f|
@@ -148,7 +147,7 @@ module TagInference
         suggested_tags << tags_for_topics[topic[0]]
       end
 
-      suggested_tags[0..4]
+      suggested_tags[0..20]
     end
   end
 end

@@ -36,6 +36,20 @@ def _extract_combined(data_dir, result_dir):
         print('Done with extracting stuff for user %d of %d' % (progress_counter, len(user_dirs)))
     sys.stderr.write("DONE WITH SOME STUFFFFFFFFF!")
 
+def extract_questions_only(data_dir, result_dir):
+    print('getting stack overflow data! woot woot')
+    counter = 0
+    user_dirs = os.walk(data_dir).next()[1]
+    print user_dirs
+    progress_counter = 0
+    for user in user_dirs:
+        if user == '.':
+            continue
+        counter, question_metadata = _clean_questions_and_answers(os.path.join(data_dir, user), 'questions', result_dir, counter, user)
+        progress_counter += 1
+        print('Done with extracting stuff for user %d of %d' % (progress_counter, len(user_dirs)))
+    sys.stderr.write("DONE WITH SOME STUFFFFFFFFF!")
+
 def _get_metadata_for_document(document):
     """Given a dictionary, will pull the relevant metadata out of it and return it as a dictionary."""
     data = {
@@ -130,5 +144,10 @@ def _try_makedirs(path):
 if (__name__ == "__main__"):
     if len(sys.argv) < 3:
         print("Usage: python stack_overflow.py <input-dir> <output-dir>")
+        print("or")
+        print("python stack_overflow.py questions <input-dir> <output-dir>")
     else:
-        _extract(sys.argv[1], sys.argv[2])
+        if len(sys.argv) == 4:
+            extract_questions_only(sys.argv[2], sys.argv[3])
+        else:
+            _extract(sys.argv[1], sys.argv[2])

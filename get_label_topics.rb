@@ -42,9 +42,9 @@ module TagInference
       top_tags = []
       chosen_tags = []
       topic_tag_distribution[0..-1].each_with_index do |tag_distribution, i|
-        remove_chosen_tags(tag_distribution, chosen_tags)
+        #remove_chosen_tags(tag_distribution, chosen_tags)
         top_tag = tag_distribution.sort_by { |tag, proportion| proportion }.reverse[0][0]
-         chosen_tags << top_tag
+         #chosen_tags << top_tag
         top_tags[i] = top_tag
       end
 
@@ -88,6 +88,7 @@ module TagInference
       "#{parsed_name[:user_id]}/raw/#{data_filename}"
     end
 
+    # TODO: use MalletUtils
     def load_and_parse_question_or_answer_file(filename, original_data_dir)
       file_to_load = get_filename_to_load_from_mallet_document_name(filename)
       loaded_file = nil
@@ -98,6 +99,7 @@ module TagInference
       loaded_file
     end
 
+    # TODO: use MalletUtils
     def get_tags_for_document(document_name, loaded_document)
       parsed_name = parse_mallet_filename(document_name)
       tags = nil

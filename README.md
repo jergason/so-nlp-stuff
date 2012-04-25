@@ -19,7 +19,7 @@ package installed. If you have `pip`, you can install it with:
 
     pip install beautifulsoup4
 
-That should set you up with everythingy you need to run the scripts.
+That should set you up with everything you need to run the scripts.
 
 ##Workflow for getting tagged data
 1. Run `bundle install` to make sure you have all dependencies

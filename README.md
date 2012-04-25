@@ -1,11 +1,30 @@
 #Notes
+This is a set of scripts and data for doing NLP on StackOverflow.com.
+It uses Ruby, and Python for the script ripped from StackOverflow.
 
-Better late then never.
+## Installation and Dependencies
+You need a working installation of Ruby, and a working installation of bundler.
+See the [Ruby website](http://www.ruby-lang.org/en/) for info on installing Ruby.
+
+Once Ruby is installed, install Bundler:
+
+    gem install bundler
+
+Then install the required dependencies:
+
+    bundle install
+
+You also need a working Python installation, with the [BeautifulSoup4](http://www.crummy.com/software/BeautifulSoup/).
+package installed. If you have `pip`, you can install it with:
+
+    pip install beautifulsoup4
+
+That should set you up with everythingy you need to run the scripts.
 
 ##Workflow for getting tagged data
 1. Run `bundle install` to make sure you have all dependencies
-1. Modify `main.rb` to change the parameters of users who will be downloaded`
-1. Run `main.rb` to download users. Note that this may time out or die if you use up the request limit.
+1. Modify `main.rb` to change the parameters of users who will be downloaded
+1. Run `main.rb` to download users. Note that this may time out or die if you hit the request limit.
 1. Run the `get_tags_for_questions.rb` script to add tags to questions and answers.
 
 Now the data is imported and in a format that the python import script is happy with.

@@ -1,28 +1,4 @@
 require 'json'
-# Return a hash of the top <limit> or less tags
-#def get_tags(dir, limit=3000)
-  #tags = Hash.new(0)
-  #Dir[dir].each do |user_id|
-    #%w(answers.json.tagged questions.json).each do |file|
-      #open(File.join(user_id, 'raw', file), 'r') do |f|
-        #data = JSON.parse(f.read)
-        #data.each do |item|
-          #item['tags'].each do |tag|
-            #next if tag == 'NONE'
-            #tags[tag] = tags[tag] + 1
-          #end
-        #end
-      #end
-    #end
-  #end
-  #res = tags.sort_by { |tag, count| count }[0...limit]
-  #tags = {}
-  #res.each do |pair|
-    #tags[pair[0]] = pair[1]
-  #end
-  #tags
-#end
-
 module TagInference
   class TopicTagAnalyzer
     attr_reader :doc_topic_distribution, :original_data_dir

@@ -1,10 +1,17 @@
 require 'sinatra'
 require 'json'
-require 'pry'
+require 'rack-cors'
 require './infer_tags'
 
 MALLLET_INFERENCE_MODEL = './model.inference'
 TOPIC_TAGS = './topic_tags.json'
+
+use Rack::Cors do
+  allow do
+    origins '*'
+    resource '*', :methods => [:get, :post]
+  end
+end
 
 post '/tags' do
   content_type :json

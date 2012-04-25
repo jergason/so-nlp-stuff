@@ -1,10 +1,10 @@
 require './downloader'
 
 def get_all_questions_and_answers_for_user(user, downloader, data_path)
-  user_path = File.join(data_path, user['user_id'].to_s)
-  answers_path = File.join(user_path, 'answers')
-  question_path = File.join(user_path, 'questions')
-  raw_path = File.join(user_path, 'raw')
+  user_path = File.join data_path, user['user_id'].to_s
+  answers_path = File.join user_path, 'answers'
+  question_path = File.join user_path, 'questions'
+  raw_path = File.join user_path, 'raw'
 
   FileUtils.mkdir_p answers_path
   FileUtils.mkdir_p question_path
@@ -16,7 +16,7 @@ def get_all_questions_and_answers_for_user(user, downloader, data_path)
     puts "error downloading questions or answers?"
     puts "finished on #{u}"
     File.open(File.join(data_path, "users_to_finish.json"), "w") do |f|
-      f.write(users[i..-1].to_json)
+      f.write users[i..-1].to_json
     end
     exit
   end
@@ -31,21 +31,19 @@ def get_all_questions_and_answers_for_user(user, downloader, data_path)
 end
 
 d = Downloader.new
+users = d.get_users 100, { :sort => 'reputation', :order => 'desc' }
 
 out_path = "./bottom_users"
-
-users = d.get_users(100000, { :sort => 'reputation', :order => 'asc', :min => '10', :max => '10000' })
-
 users.each_with_index do |user, i|
   if d.requests_used_up?
     puts "requests used up for the day!"
     puts "finished on #{i}"
     File.open(File.join(out_path, "users_to_finish.json"), "w") do |f|
-      f.write(users[i..-1].to_json)
+      f.write users[i..-1].to_json
     end
     exit
   else
-    get_all_questions_and_answers_for_user(user, d, out_path)
+    get_all_questions_and_answers_for_user user, d, out_path
   end
 end
 
